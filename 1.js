@@ -26,4 +26,5 @@ const matrix = [
 console.log(findInMatrix(matrix, 5));  // [1, 1]
 console.log(findInMatrix(matrix, 1));  // [0, 0]
 console.log(findInMatrix(matrix, 9));  // [2, 2]
-console.log(findInMatrix(matrix, 10)); // [-1, -1]
+
+console.log(findInMatrix(matrix, 10)); // все фигня давай по новой
