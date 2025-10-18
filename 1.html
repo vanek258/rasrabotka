@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест: Подкаты</title>
+    <style>
+        /* стили страницы */
+        body {
+            font-family: Arial;
+            margin: 0;
+            padding: 20px;
+            background: white;
+            color: black;
+        }
+        
+        /* для центрирования  */
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        /* Заголовок */
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 20px;
+        }
+        
+        /* Описание */
+        .description {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #666;
+        }
+        
+        /* Блок с вопросом */
+        .question {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            background: #f9f9f9;
+        }
+        
+        /* для вариантов ответов */
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        
+        /* вариант ответа */
+        .option {
+            padding: 12px;
+            border: 1px solid #ccc;
+            background: white;
+            cursor: pointer;
+        }
+        
+        /* при наведении  */
+        .option:hover {
+            background: #f0f0f0;
+        }
+        
+        /* Блок с результатом теста */
+        .result {
+            padding: 20px;
+            border: 1px solid #333;
+            background: #f5f5f5;
+            margin-top: 20px;
+        }
+        
+        /* количество очков */
+        .score {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        /* перезапуска игры */
+        button {
+            padding: 10px 20px;
+            background: #333;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        
+        /* Класс для скрытия элементов */
+        .hidden {
+            display: none;
+        }
+        
+        /* Блок прогресса (номер вопроса) */
+        .progress {
+            text-align: center;
+            margin: 10px 0;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Тест: Выбор подкатов</h1>
+        <div class="description">
+            Выбери подходящие фразы для знакомства. Всего 5 вопросов.
+        </div>
+        
+        <!-- Основная игровая область -->
+        <div id="gameArea">
+            <!-- Отображение прогресса (какой вопрос сейчас) -->
+            <div class="progress" id="progress">Вопрос 1 из 5</div>
+            <!-- Блок с текущим вопросом -->
+            <div class="question" id="question"></div>
+            <!-- Контейнер для вариантов ответов -->
+            <div class="options" id="options"></div>
+        </div>
+        
+        <!-- Блок с результатами (изначально скрыт) -->
+        <div class="result hidden" id="result">
+            <div class="score" id="scoreText"></div>
+            <div id="resultMessage"></div>
+            <!-- Кнопка для перезапуска игры -->
+            <button onclick="restartGame()">Пройти еще раз</button>
+        </div>
+    </div>
+
+    <script>
+        // ДАННЫЕ ТЕСТА 
+        // Массив всех вопросов и вариантов ответов
+        const questions = [
+            {
+                text: "Какой вариант подойдет для начала разговора?",
+                options: [
+                    { text: "У тебя есть карта? Я постоянно теряюсь в твоих глазах", correct: true },
+                    { text: "Ты не устала? Ты у меня в голове весь день бегаешь", correct: false },
+                    { text: "Ты веришь в любовь с первого взгляда?", correct: true },
+                    { text: "Ты сломалось? Сердце замерло когда тебя увидел", correct: false }
+                ]
+            },
+            {
+                text: "Что сказать дальше?",
+                options: [
+                    { text: "Ты не солнце, но от тебя тоже можно сгореть", correct: true },
+                    { text: "Ты как домашнее задание - не хочу делать, но должен", correct: false },
+                    { text: "Ты не Google, но у тебя есть всё, что я ищу", correct: true },
+                    { text: "Ты как Wi-Fi - без тебя не могу жить", correct: false }
+                ]
+            },
+            {
+                text: "Продолжи разговор:",
+                options: [
+                    { text: "Ты не книга, но я не могу оторваться", correct: true },
+                    { text: "Ты не пицца, но делаешь мой день лучше", correct: false },
+                    { text: "Ты не кофе, но бодришь лучше эспрессо", correct: true },
+                    { text: "Ты не дождь, но заставляешь меня мокнуть", correct: false }
+                ]
+            },
+            {
+                text: "Разговор идет хорошо. Что добавишь?",
+                options: [
+                    { text: "Ты не радуга, но делаешь мир ярче", correct: true },
+                    { text: "Ты не призрак, но от тебя дыхание замирает", correct: false },
+                    { text: "Ты не музыка, но заставляешь сердце петь", correct: true },
+                    { text: "Ты не алкоголь, но голова кружится", correct: false }
+                ]
+            },
+            {
+                text: "Финальная фраза:",
+                options: [
+                    { text: "Ты не время, но ради тебя оно останавливается", correct: true },
+                    { text: "Ты не зеркало, но в тебе вижу всё лучшее", correct: false },
+                    { text: "Ты не звезда, но освещаешь мою жизнь", correct: true },
+                    { text: "Ты не подушка, но с тобой хочется заснуть", correct: false }
+                ]
+            }
+        ];
+
+        //  ПЕРЕМЕННЫЕ ИГРЫ 
+        let currentQuestion = 0;  // Текущий номер вопроса (начинается с 0)
+        let score = 0;            // Количество правильных ответов
+
+        // ФУНКЦИИ ИГРЫ
+
+        /**
+         * Начинает новую игру - сбрасывает все значения и показывает первый вопрос
+         */
+        function startGame() {
+            // Сбрасываем счетчик вопроса и очков
+            currentQuestion = 0;
+            score = 0;
+            
+            // Прячем блок с результатами и показываем игровую область
+            document.getElementById('result').classList.add('hidden');
+            document.getElementById('gameArea').classList.remove('hidden');
+            
+            // Показываем первый вопрос
+            showQuestion();
+        }
+
+        /**
+         * Показывает текущий вопрос и варианты ответов
+         */
+        function showQuestion() {
+            // Если вопросы закончились - показываем результат
+            if (currentQuestion >= questions.length) {
+                showResult();
+                return;
+            }
+
+            // Получаем данные текущего вопроса
+            const question = questions[currentQuestion];
+            
+            // Показываем текст вопроса
+            document.getElementById('question').textContent = question.text;
+            
+            // Обновляем прогресс (номер текущего вопроса)
+            document.getElementById('progress').textContent = `Вопрос ${currentQuestion + 1} из ${questions.length}`;
+            
+            // Находим контейнер для вариантов ответов
+            const optionsContainer = document.getElementById('options');
+            
+            // Очищаем предыдущие варианты
+            optionsContainer.innerHTML = '';
+            
+            // Для каждого варианта ответа создаем элемент
+            question.options.forEach(option => {
+                // Создаем div для варианта ответа
+                const optionElement = document.createElement('div');
+                optionElement.className = 'option';
+                optionElement.textContent = option.text;
+                
+                // При клике на вариант вызываем функцию проверки
+                optionElement.onclick = () => selectOption(option.correct);
+                
+                // Добавляем вариант в контейнер
+                optionsContainer.appendChild(optionElement);
+            });
+        }
+
+        /**
+         * Обрабатывает выбор варианта ответа
+         * @param {boolean} isCorrect - правильный ли ответ выбрал пользователь
+         */
+        function selectOption(isCorrect) {
+            // Если ответ правильный то увеличиваем счет
+            if (isCorrect) {
+                score++;
+            }
+            
+            // Переходим к следующему вопросу
+            currentQuestion++;
+            
+            // Показываем следующий вопрос
+            showQuestion();
+        }
+
+        /**
+         * Показывает финальный результат теста
+         */
+        function showResult() {
+            // Прячем игровую область и показываем результаты
+            document.getElementById('gameArea').classList.add('hidden');
+            document.getElementById('result').classList.remove('hidden');
+            
+            // Показываем количество набранных очков
+            document.getElementById('scoreText').textContent = `Результат: ${score} из ${questions.length}`;
+            
+            // Выбираем сообщение в зависимости от результата
+            let message = '';
+            if (score === 5) {
+                message = 'Отлично! Ты хорошо понимаешь, как правильно знакомиться.';
+            } else if (score >= 3) {
+                message = 'Неплохо. Есть понимание, но можно лучше.';
+            } else if (score >= 1) {
+                message = 'Нужно поработать над подходом к знакомствам.';
+            } else {
+                message = 'Стоит пересмотреть свой подход к общению.';
+            }
+            
+            // Показываем сообщение с результатом
+            document.getElementById('resultMessage').textContent = message;
+        }
+
+        /**
+         * Перезапускает игру (вызывается при нажатии кнопки)
+         */
+        function restartGame() {
+            startGame();
+        }
+
+        //  ЗАПУСК ИГРЫ 
+        // Начинаем игру сразу после загрузки страницы
+        startGame();
+    </script>
+</body>
+</html>
