@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <script>
+        class User{
+            constructor(id, name, role, password) {
+                this.id = id;
+                this.name = name;
+                this.role = role;
+                this.password = password;
+            }
+        }
+
+        class UserStorage {
+            constructor() {
+                this.users = []
+            }
+        }
+
+        class Consts{
+            static UserExistsException = "Пользователь с таким именем уже зарегистрирован";
+            static UserNotFoundException = "Пользователь не найден"
+            static PasswordsNotMatchException = "Пароли не совпадают"
+            static PermissionException = "Нет прав"
+            static ProductExistsException = "Такой товар уже есть"
+            static ProductNotFoundException = "Товар не найден"
+            static InsufficientQuantityException = "Недостаточно товара на складе"
+        }
+
+        class UserService{
+
+            constructor() {
+                this.userStorage = new UserStorage();
+            }
+
+            signupAdmin(name, password) {
+                if(this.isExistsUserByName(name)) {
+                    return alert(Consts.UserExistsException);
+                }
+                let candidate = new User(this.userStorage.users.length + 1, name, "admin", password);
+                this.userStorage.users.push(candidate);
+                return candidate;
+            }
+
+            isExistsUserByName(name) {
+                return this.userStorage.users.find(user => user.name == name) != null;
+            }
+
+            signup(name, password) {
+                if(this.isExistsUserByName(name)) {
+                    return alert(Consts.UserExistsException);
+                }
+                let candidate = new User(this.userStorage.users.length + 1, name, "user", password);
+                this.userStorage.users.push(candidate);
+                return candidate;
+            }
+
+            signin(name, password) {
+                let candidate = this.userStorage.users.find(user => user.name == name)
+
+                if (!candidate) { // Исправлено: проверка на undefined
+                    return alert(Consts.UserNotFoundException);
+                }
+
+                return password === candidate.password ? candidate : alert(Consts.PasswordsNotMatchException);
+            }
+        }
+
+        class Product{
+            constructor(id, name, price, category) { // Добавлена категория
+                this.id = id;
+                this.name = name;
+                this.price = price;
+                this.category = category; // Новая поле: категория товара
+            }
+        }
+
+        class ProductStorage{
+            constructor() {
+                this.countProducts = 0;
+                this.productMap = new Map() // Key: Product, Value: quantity
+            }
+        }
+
+        class ProductService{
+            constructor() {
+                this.productStorage = new ProductStorage();
+            }
+
+            createProduct(name, quantity, price, category, user) { // Добавлена категория
+                if (user == null) return;
+                if (typeof quantity !== 'number' || typeof price != 'number') return;
+                if (user.role != 'admin') {
+                    return alert(Consts.PermissionException)
+                }
+ let productCandidate = new Product(this.productStorage.productMap.size + 1, name, price, category)
+                if(this.productStorage.productMap.get(productCandidate) != undefined)
+                return ("exist")
+               
+                this.productStorage.productMap.set(productCandidate, quantity);
+                return productCandidate;
+            }
+
+            // ПОИСК ПО НАЗВАНИЮ ТОВАРА
+            searchProductsByName(name) {
+                let results = [];
+                for (let [product, quantity] of this.productStorage.productMap) {
+                    if (product.name.toLowerCase().includes(name.toLowerCase())) {
+                        results.push({ product, quantity });
+                    }
+                }
+                return results;
+            }
+
+            // ИЗМЕНЕНИЕ ЦЕНЫ ТОВАРА
+            updateProductPrice(productId, newPrice, user) {
+                if (user.role != 'admin') {
+                    return alert(Consts.PermissionException);
+                }
+
+                for (let [product, quantity] of this.productStorage.productMap) {
+                    if (product.id === productId) {
+                        product.price = newPrice;
+                        return product;
+                    }
+                }
+                return alert(Consts.ProductNotFoundException);
+            }
+
+            // УДАЛЕНИЕ ТОВАРА
+            deleteProduct(productId, user) {
+                if (user.role != 'admin') {
+                    return alert(Consts.PermissionException);
+                }
+
+                for (let [product, quantity] of this.productStorage.productMap) {
+                    if (product.id === productId) {
+                        this.productStorage.productMap.delete(product);
+                        return true;
+                    }
+                }
+                return alert(Consts.ProductNotFoundException);
+            }
+
+            // ПОКУПКА ТОВАРА
+            purchaseProduct(productId, quantityToBuy, user) {
+                if (!user) return alert("Необходимо авторизоваться");
+                
+                for (let [product, availableQuantity] of this.productStorage.productMap) {
+                    if (product.id === productId) {
+                        if (availableQuantity < quantityToBuy) {
+                            return alert(Consts.InsufficientQuantityException);
+                        }
+                        
+                        // Уменьшаем количество товара
+                        this.productStorage.productMap.set(product, availableQuantity - quantityToBuy);
+                        
+                        // Создаем заказ
+                        let orderService = new OrderService();
+                        return orderService.createOrder(user.id, [{
+                            product: product,
+                            quantity: quantityToBuy
+                        }]);
+                    }
+                }
+                return alert(Consts.ProductNotFoundException);
+            }
+        }
+
+        class Order{
+            constructor(id, userId, date, products) {
+                this.id = id;
+                this.userId = userId;
+                this.date = date;
+                this.products = products; // Массив объектов {product, quantity}
+                this.sumPrice = 0;
+
+                // Исправлено: добавлен this
+                for(let i = 0; i < products.length; i++) {
+                    this.sumPrice += products[i].product.price * products[i].quantity;
+                }
+            }
+        }
+
+        class OrderStorage {
+            constructor() {
+                this.orders = [];
+            }
+        }
+
+        class OrderService {
+            constructor() {
+                this.orderStorage = new OrderStorage();
+            }
+
+            // СОЗДАНИЕ ЗАКАЗА
+            createOrder(userId, products) {
+                const order = new Order(
+                    this.orderStorage.orders.length + 1,
+                    userId,
+                    new Date(),
+                    products
+                );
+                this.orderStorage.orders.push(order);
+                return order;
+            }
+
+            // ПОЛУЧЕНИЕ ЗАКАЗОВ ПОЛЬЗОВАТЕЛЯ
+            getUserOrders(userId) {
+                return this.orderStorage.orders.filter(order => order.userId === userId);
+            }
+
+            // ПОЛУЧЕНИЕ ВСЕХ ЗАКАЗОВ (для админа)
+            getAllOrders(user) {
+                if (user.role !== 'admin') {
+                    return alert(Consts.PermissionException);
+                }
+                return this.orderStorage.orders;
+            }
+        }
+
+        // ТЕСТИРОВАНИЕ
+        let userService = new UserService();
+        let productService = new ProductService();
+        let orderService = new OrderService();
+
+        // Регистрация админа
+        let user1 = userService.signupAdmin("Alex", "0000")
+        if (user1 instanceof User) 
+            alert("Админ зарегистрирован")
+
+        // Регистрация обычного пользователя
+        let user2 = userService.signup("Mike", "1111")
+        if (user2 instanceof User) 
+            alert("Пользователь зарегистрирован")
+
+        // Авторизация
+        let currentUser = userService.signin("Alex", "0000");
+        console.log("Авторизован:", currentUser)
+
+        // Создание товаров с категориями
+        productService.createProduct("Bread", 10, 50, "Food", currentUser);
+        productService.createProduct("Milk", 5, 80, "Food", currentUser);
+        productService.createProduct("Phone", 3, 15000, "Electronics", currentUser);
+
+        console.log("Все товары:", productService.productStorage)
+
+        // Поиск товаров
+        console.log("Поиск 'Br':", productService.searchProductsByName("Br"));
+
+        // Изменение цены
+        productService.updateProductPrice(1, 60, currentUser);
+
+        // Покупка товара
+        let customer = userService.signin("Mike", "1111");
+        productService.purchaseProduct(1, 2, customer); // Покупаем 2 хлеба
+
+        // Получение заказов пользователя
+        console.log("Заказы Mike:", orderService.getUserOrders(customer.id));
+
+        console.log("Финальное состояние:", {
+            users: userService.userStorage,
+            products: productService.productStorage,
+            orders: orderService.orderStorage
+        });
+    </script> 
+</body>
+</html>
